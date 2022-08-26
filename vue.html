@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<p class="data"></p>
+<button>+3</button>
+<p>执行三次+1,但只更新一次页面即只执行一次页面更新逻辑</p>
+</body>
+<script src="vue.js"></script>
+<script>
+    // 创建一个ref变量
+    const data = ref({text: 29})
+    // 按钮点击事件
+    document.querySelector("button").addEventListener("click", () => {
+        data.text++;
+        data.text++;
+        data.text++;
+    })
+
+
+    // ----------------------------------------------------------------------
+
+
+    const myScheduler = () => {
+        const list = new Set()
+        let is = false;
+        // 用Promise微任务把页面更新的逻辑延迟到值修改之后
+        const p = Promise.resolve()
+        return (fn)=>{
+            // 如果存在多次修改值,回调函数如果没有去重,在延迟调用后会直接输出最后一次修改的值并且输出多次
+            list.add(fn)
+            if (is) return
+            is = true
+            p.then(() => list.forEach(fn=>fn())).finally(()=>is = false)
+        }
+    }
+    // 收集依赖函数
+    const options = {
+        scheduler:myScheduler(),// 把页面更新的时机交给用户 ps:但需要返回一个函数
+        lazy: true // 是否懒加载 ps:将触发收集依赖函数的时机延迟到获取变量时
+    }
+    // 收集依赖函数
+    const effectFn = effect(() => {
+        document.getElementsByClassName("data")[0].innerHTML = data.text;
+        return data.text;
+    }, options);
+    // 如果开启懒加载,手动触发下页面更新,收集依赖
+    if (options.lazy) {
+        effectFn()
+    }
+
+</script>
+</html>
